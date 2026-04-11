@@ -1,51 +1,113 @@
 import { useEffect, useState } from "react";
-import StatCard from "./StatCard";
-import Charts from "./Charts";
 import { getStats } from "../api/api";
-
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  Legend,
+  ResponsiveContainer
+} from "recharts";
 
 export default function Dashboard() {
-const [stats, setStats] = useState(null);
+  const [stats, setStats] = useState(null);
 
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      getStats(token)
+        .then((res) => {
+          console.log("Dashboard API:", res.data);
+          setStats(res.data);
+        })
+        .catch((err) => console.error(err));
+    }
+  }, []);
 
-useEffect(() => {
-const token = localStorage.getItem("token");
-if (token) {
-getStats(token).then((res) => setStats(res.data));
-}
-}, []);
+  if (!stats) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-xl font-semibold">
+        Loading premium analytics...
+      </div>
+    );
+  }
 
+  const chartData = [
+    { name: "Buyers", value: stats.buyers || 0 },
+    { name: "Non-Buyers", value: stats.nonBuyers || 0 }
+  ];
 
-if (!stats) {
-return <div className="p-6">Loading advanced analytics...</div>;
-}
+  const cards = [
+    { title: "👥 Total Users", value: stats.total || 0 },
+    { title: "📈 Conversion %", value: `${stats.conversionRate ?? 0}%` },
+    { title: "🖱 Avg Clicks", value: stats.avgClicks ?? 0 },
+    { title: "⚠ Risk %", value: `${stats.riskRate ?? 0}%` }
+  ];
 
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-black text-white p-8">
+      {/* Header */}
+      <div className="mb-10">
+        <h1 className="text-5xl font-bold tracking-tight">
+          🚀 CartMind Intelligence
+        </h1>
+        <p className="text-slate-400 mt-2">
+          AI-powered conversion & retention analytics
+        </p>
+      </div>
 
-return (
-<div className="min-h-screen bg-gradient-to-r from-slate-100 to-blue-100 p-6">
-<h1 className="text-3xl font-bold mb-6">📈 Advanced CartMind Analytics</h1>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-10">
+        {cards.map((card, index) => (
+          <div
+            key={index}
+            className="backdrop-blur-lg bg-white/10 border border-white/10 rounded-3xl shadow-2xl p-6 hover:scale-105 transition"
+          >
+            <p className="text-slate-300 text-sm">{card.title}</p>
+            <h2 className="text-4xl font-bold mt-3">{card.value}</h2>
+          </div>
+        ))}
+      </div>
 
+      {/* Chart + Insights */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+        {/* Pie Chart */}
+        <div className="bg-white/10 backdrop-blur-lg rounded-3xl shadow-2xl p-6">
+          <h2 className="text-2xl font-semibold mb-6">
+            🥧 Buyer Distribution
+          </h2>
+          <div className="h-96">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={chartData}
+                  dataKey="value"
+                  outerRadius={130}
+                  label
+                >
+                  <Cell />
+                  <Cell />
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
 
-<div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-  <StatCard title="Total Users" value={stats.total} />
-<StatCard title="Conversion %" value={`${stats.conversionRate}%`} />
-<StatCard title="Avg Clicks" value={stats.avgClicks} />
-<StatCard title="Risk %" value={`${stats.riskRate}%`} />
-</div>
+        {/* AI Insights */}
+        <div className="bg-white/10 backdrop-blur-lg rounded-3xl shadow-2xl p-6">
+          <h2 className="text-2xl font-semibold mb-6">🧠 AI Insights</h2>
 
-
-<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-<Charts buyers={stats.buyers} nonBuyers={stats.nonBuyers} />
-
-
-<div className="bg-white rounded-2xl shadow-xl p-6">
-<h2 className="text-xl font-semibold mb-4">📊 KPI Insights</h2>
-<p>🛒 Buyers: {stats.buyers}</p>
-<p>🚪 Non Buyers: {stats.nonBuyers}</p>
-<p>⏱ Avg Time Spent: {stats.avgTime}</p>
-<p>⚠️ High Risk Users: {stats.highRisk}</p>
-</div>
-</div>
-</div>
-);
+          <div className="space-y-4 text-lg">
+            <p>🛒 Buyers: <b>{stats.buyers}</b></p>
+            <p>🚪 Non Buyers: <b>{stats.nonBuyers}</b></p>
+            <p>⏱ Avg Time Spent: <b>{stats.avgTime}</b></p>
+            <p>⚠ High Risk Users: <b>{stats.highRisk}</b></p>
+            <p>🎯 Best Action: <b>Smart Discount + Product Bundle</b></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
