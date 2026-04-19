@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { predictUser } from "../api/api";
+import { predictUser, trackEvent } from "../api/api";
 
 export default function ProductPage() {
   const [data, setData] = useState({
@@ -11,19 +11,51 @@ export default function ProductPage() {
 
   const [result, setResult] = useState(null);
 
-  // Handlers
+  const USER_ID = 1; // static for now (later from auth)
+
+  // ✅ Track Click Event
   const handleClick = () => {
-    setData({ ...data, clicks: data.clicks + 1 });
+    setData((prev) => ({
+      ...prev,
+      clicks: prev.clicks + 1
+    }));
+
+    trackEvent({
+      user_id: USER_ID,
+      event_type: "click",
+      value: 1
+    });
   };
 
+  // ✅ Track Time Spent
   const handleTime = () => {
-    setData({ ...data, time_spent: data.time_spent + 1 });
+    setData((prev) => ({
+      ...prev,
+      time_spent: prev.time_spent + 1
+    }));
+
+    trackEvent({
+      user_id: USER_ID,
+      event_type: "time_spent",
+      value: 1
+    });
   };
 
+  // ✅ Track Add to Cart
   const handleCart = () => {
-    setData({ ...data, cart_added: 1 });
+    setData((prev) => ({
+      ...prev,
+      cart_added: 1
+    }));
+
+    trackEvent({
+      user_id: USER_ID,
+      event_type: "add_to_cart",
+      value: 1
+    });
   };
 
+  // ✅ Prediction API
   const handlePredict = async () => {
     try {
       const res = await predictUser(data);
@@ -34,30 +66,32 @@ export default function ProductPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-r from-blue-100 to-purple-200 p-6">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 to-black text-white p-6">
 
       {/* Title */}
-      <h1 className="text-3xl font-bold mb-6">🛒 CartMind Smart Product</h1>
+      <h1 className="text-4xl font-bold mb-8">
+        🧠 CartMind Smart Engine
+      </h1>
 
-      {/* Buttons */}
-      <div className="flex flex-wrap gap-3 mb-6">
+      {/* Action Buttons */}
+      <div className="flex flex-wrap gap-4 mb-8">
         <button
           onClick={handleClick}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow"
+          className="bg-blue-600 hover:bg-blue-700 px-5 py-2 rounded-xl shadow-lg transition"
         >
           Click Product ({data.clicks})
         </button>
 
         <button
           onClick={handleTime}
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow"
+          className="bg-green-600 hover:bg-green-700 px-5 py-2 rounded-xl shadow-lg transition"
         >
           Spend Time ({data.time_spent})
         </button>
 
         <button
           onClick={handleCart}
-          className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg shadow"
+          className="bg-yellow-500 hover:bg-yellow-600 px-5 py-2 rounded-xl shadow-lg transition"
         >
           Add to Cart
         </button>
@@ -66,16 +100,16 @@ export default function ProductPage() {
       {/* Predict Button */}
       <button
         onClick={handlePredict}
-        className="bg-black hover:bg-gray-800 text-white px-6 py-2 rounded-lg shadow mb-6"
+        className="bg-white text-black hover:bg-gray-200 px-8 py-3 rounded-xl font-semibold shadow-xl mb-8"
       >
         Predict Behavior
       </button>
 
       {/* Result Card */}
       {result && (
-        <div className="bg-white p-6 rounded-xl shadow-lg w-80 text-center">
-          <p className="text-lg font-semibold">
-            Prediction: {result.prediction === 1 ? "🟢 Will Buy" : "🔴 Will Leave"}
+        <div className="bg-white text-black p-6 rounded-2xl shadow-2xl w-80 text-center">
+          <p className="text-xl font-semibold">
+            {result.prediction === 1 ? "🟢 Will Buy" : "🔴 Will Leave"}
           </p>
 
           <p className="mt-2">
@@ -89,15 +123,17 @@ export default function ProductPage() {
       )}
 
       {/* SMART POPUP */}
-      {result && result.prediction === 0 && (
-        <div className="fixed top-0 left-0 w-full h-full bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-xl shadow-xl text-center w-80">
+      {result && result.action === "give_20_discount" && (
+        <div className="fixed top-0 left-0 w-full h-full bg-black/70 flex items-center justify-center">
+          <div className="bg-white text-black p-6 rounded-2xl shadow-xl text-center w-80">
             <h2 className="text-xl font-bold mb-2">🎉 Special Offer!</h2>
-            <p className="mb-4">Get 20% OFF if you buy now!</p>
+            <p className="mb-4">
+              Get 20% OFF if you checkout now!
+            </p>
 
             <button
               onClick={() => setResult(null)}
-              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
+              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg"
             >
               Claim Offer
             </button>

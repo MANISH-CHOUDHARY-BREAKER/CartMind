@@ -5,18 +5,38 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from flask import make_response
+
 from flask_jwt_extended import JWTManager, create_access_token
 import joblib
-import pandas as pd
 
+# DB
 from databases.database import db, UserPrediction
-from routes.stats_api import stats_bp
 
-app = Flask(__name__)
-CORS(app)
+# Routes
+from routes.stats_api import stats_bp
+from routes.event_api import event_bp
+
+# Models
+from models.event import Event
 
 # -------------------------------
-# App + DB + JWT Config
+# INIT APP
+# -------------------------------
+app = Flask(__name__)
+
+from flask_cors import CORS
+
+CORS(
+    app,
+    supports_credentials=True,
+    resources={r"/*": {"origins": "http://localhost:5173"}}
+)
+
+
+
+# -------------------------------
+# CONFIG
 # -------------------------------
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///cartmind.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -26,20 +46,53 @@ jwt = JWTManager(app)
 db.init_app(app)
 
 # -------------------------------
-# Load ML Model
+# LOAD MODEL
 # -------------------------------
 model = joblib.load("model.pkl")
 
 # -------------------------------
-# Create Tables + Register Routes
+# CREATE TABLES
 # -------------------------------
 with app.app_context():
     db.create_all()
 
+# -------------------------------
+# REGISTER ROUTES
+# -------------------------------
 app.register_blueprint(stats_bp)
+app.register_blueprint(event_bp, url_prefix="/api")
 
 # -------------------------------
-# Health Route
+# DECISION ENGINE
+# -------------------------------
+def decide_action(prob):
+    if prob > 0.8:
+        return "no_discount"
+    elif prob > 0.5:
+        return "show_bundle"
+    else:
+        return "give_20_discount"
+
+# -------------------------------
+# FEATURE EXTRACTION (🔥 CORE)
+# -------------------------------
+
+def extract_features(user_id):
+    events = Event.query.filter_by(user_id=user_id).all()
+
+    if not events:
+        return [0, 0, 0, 2]
+
+    clicks = sum(1 for e in events if e.event_type == "click")
+    time_spent = sum(e.value for e in events if e.event_type == "time_spent")
+    cart = sum(1 for e in events if e.event_type == "add_to_cart")
+
+    return [clicks, time_spent, cart, 2]
+ # last_login dummy
+
+
+# -------------------------------
+# HEALTH ROUTE
 # -------------------------------
 @app.route("/")
 def home():
@@ -47,8 +100,9 @@ def home():
         "message": "🚀 CartMind Backend Running Successfully"
     })
 
+
 # -------------------------------
-# Admin JWT Login
+# ADMIN LOGIN (JWT)
 # -------------------------------
 @app.route("/admin/login", methods=["POST"])
 def admin_login():
@@ -63,41 +117,36 @@ def admin_login():
 
     return jsonify({"error": "Invalid credentials"}), 401
 
+
 # -------------------------------
-# Prediction Route
+# 🚨 EVENT-BASED PREDICTION
 # -------------------------------
 @app.route("/predict", methods=["POST"])
 def predict():
     try:
         data = request.json
+        user_id = data.get("user_id", 1)
 
-        input_data = pd.DataFrame([[
-            data["clicks"],
-            data["time_spent"],
-            data["cart_added"],
-            data["last_login"]
-        ]], columns=[
-            "clicks",
-            "time_spent",
-            "cart_added",
-            "last_login"
-        ])
+        # 🔥 USE EVENTS INSTEAD OF FRONTEND DATA
+        features = [extract_features(user_id)]
 
-        prediction = model.predict(input_data)[0]
-        probability = model.predict_proba(input_data)[0][1]
+        prediction = model.predict(features)[0]
+        probability = model.predict_proba(features)[0][1]
 
+
+        # Save prediction log (optional)
         new_prediction = UserPrediction(
-            clicks=data["clicks"],
-            time_spent=data["time_spent"],
-            cart_added=data["cart_added"],
-            last_login=data["last_login"],
+            clicks=features[0][0],
+            time_spent=features[0][1],
+            cart_added=features[0][2],
+            last_login=features[0][3],
             prediction=int(prediction)
         )
 
         db.session.add(new_prediction)
         db.session.commit()
 
-        action = "Recommend Product" if prediction == 1 else "Show Discount Popup"
+        action = decide_action(probability)
 
         return jsonify({
             "prediction": int(prediction),
@@ -109,5 +158,14 @@ def predict():
         return jsonify({"error": str(e)}), 500
 
 
+# -------------------------------
+# RUN SERVER
+# -------------------------------
 if __name__ == "__main__":
     app.run(debug=True)
+
+
+
+
+
+

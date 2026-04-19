@@ -25,3 +25,11 @@ export const exportCSV = () =>
   API.get("/export", {
     responseType: "blob"
   });
+
+
+export const trackEvent = (eventData) =>
+  axios.post("http://127.0.0.1:5000/api/track", eventData, {
+    headers: {
+      "Content-Type": "application/json"
+    }
+  });
