@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { predictUser, trackEvent } from "../api/api";
+import { trackEvent } from "../api/api";
 
 export default function ProductPage() {
   const [data, setData] = useState({
@@ -11,54 +11,62 @@ export default function ProductPage() {
 
   const [result, setResult] = useState(null);
 
-  const USER_ID = 1; // static for now (later from auth)
+  const USER_ID = 1; // static for now
 
-  // ✅ Track Click Event
-  const handleClick = () => {
+  // 🖱 Track Click Event + Predict
+  const handleClick = async () => {
     setData((prev) => ({
       ...prev,
       clicks: prev.clicks + 1
     }));
 
-    trackEvent({
-      user_id: USER_ID,
-      event_type: "click",
-      value: 1
-    });
+    try {
+      const res = await trackEvent({
+        user_id: USER_ID,
+        event_type: "click",
+        value: 1
+      });
+
+      setResult(res.data);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  // ✅ Track Time Spent
-  const handleTime = () => {
+  // ⏱ Track Time Spent + Predict
+  const handleTime = async () => {
     setData((prev) => ({
       ...prev,
       time_spent: prev.time_spent + 1
     }));
 
-    trackEvent({
-      user_id: USER_ID,
-      event_type: "time_spent",
-      value: 1
-    });
+    try {
+      const res = await trackEvent({
+        user_id: USER_ID,
+        event_type: "time_spent",
+        value: 1
+      });
+
+      setResult(res.data);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  // ✅ Track Add to Cart
-  const handleCart = () => {
+  // 🛒 Track Add to Cart + Predict
+  const handleCart = async () => {
     setData((prev) => ({
       ...prev,
       cart_added: 1
     }));
 
-    trackEvent({
-      user_id: USER_ID,
-      event_type: "add_to_cart",
-      value: 1
-    });
-  };
-
-  // ✅ Prediction API
-  const handlePredict = async () => {
     try {
-      const res = await predictUser(data);
+      const res = await trackEvent({
+        user_id: USER_ID,
+        event_type: "add_to_cart",
+        value: 1
+      });
+
       setResult(res.data);
     } catch (err) {
       console.error(err);
@@ -97,14 +105,6 @@ export default function ProductPage() {
         </button>
       </div>
 
-      {/* Predict Button */}
-      <button
-        onClick={handlePredict}
-        className="bg-white text-black hover:bg-gray-200 px-8 py-3 rounded-xl font-semibold shadow-xl mb-8"
-      >
-        Predict Behavior
-      </button>
-
       {/* Result Card */}
       {result && (
         <div className="bg-white text-black p-6 rounded-2xl shadow-2xl w-80 text-center">
@@ -113,7 +113,7 @@ export default function ProductPage() {
           </p>
 
           <p className="mt-2">
-            Confidence: {result.confidence.toFixed(2)}
+            Confidence: {result.confidence}
           </p>
 
           <p className="mt-2 font-medium">
@@ -122,7 +122,7 @@ export default function ProductPage() {
         </div>
       )}
 
-      {/* SMART POPUP */}
+      {/* 🎉 SMART POPUP */}
       {result && result.action === "give_20_discount" && (
         <div className="fixed top-0 left-0 w-full h-full bg-black/70 flex items-center justify-center">
           <div className="bg-white text-black p-6 rounded-2xl shadow-xl text-center w-80">
@@ -140,7 +140,7 @@ export default function ProductPage() {
           </div>
         </div>
       )}
-
     </div>
   );
 }
+
