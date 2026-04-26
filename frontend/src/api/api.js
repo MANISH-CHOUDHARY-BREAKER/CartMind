@@ -3,7 +3,7 @@
 
 
   // CartMind API client. Override base URL: localStorage.setItem('cartmind_api', 'http://host:port')
-const DEFAULT_BASE = "http://localhost:8000";
+const DEFAULT_BASE = import.meta.env.VITE_API_URL ||  "http://localhost:5000";
 export const getApiBase = () =>
   (typeof window !== "undefined" && localStorage.getItem("cartmind_api")) || DEFAULT_BASE;
 

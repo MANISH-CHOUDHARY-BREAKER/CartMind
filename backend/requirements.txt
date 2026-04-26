@@ -1,0 +1,9 @@
+flask
+flask-cors
+flask-jwt-extended
+flask-sqlalchemy
+joblib
+scikit-learn
+pandas
+numpy
+gunicorn
