@@ -20,6 +20,11 @@ from routes.event_api import event_bp
 # Models
 from models.event import Event
 
+
+import joblib
+
+model = joblib.load("model.pkl")
+scaler = joblib.load("scaler.pkl")   # 🔥 ADD THIS
 # -------------------------------
 # INIT APP
 # -------------------------------
@@ -27,7 +32,10 @@ app = Flask(__name__)
 
 from flask_cors import CORS
 
-CORS(app)
+CORS(app, origins=[
+    "http://localhost:5173",
+    "https://your-vercel-app.vercel.app"
+])
 
 
 
@@ -107,9 +115,12 @@ def predict():
 
         # 🔥 USE EVENTS INSTEAD OF FRONTEND DATA
         features = [extract_features(user_id)]
+        features_scaled = scaler.transform(features)
 
-        prediction = model.predict(features)[0]
-        probability = model.predict_proba(features)[0][1]
+        prediction = model.predict(features_scaled)[0]
+        probability = model.predict_proba(features_scaled)[0][1]
+
+      
 
 
         # Save prediction log (optional)
