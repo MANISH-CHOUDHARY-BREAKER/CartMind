@@ -27,11 +27,7 @@ app = Flask(__name__)
 
 from flask_cors import CORS
 
-CORS(
-    app,
-    supports_credentials=True,
-    resources={r"/*": {"origins": "http://localhost:5173"}}
-)
+CORS(app)
 
 
 
@@ -48,7 +44,6 @@ db.init_app(app)
 # -------------------------------
 # LOAD MODEL
 # -------------------------------
-model = joblib.load("model.pkl")
 
 # -------------------------------
 # CREATE TABLES
@@ -65,29 +60,12 @@ app.register_blueprint(event_bp, url_prefix="/api")
 # -------------------------------
 # DECISION ENGINE
 # -------------------------------
-def decide_action(prob):
-    if prob > 0.8:
-        return "no_discount"
-    elif prob > 0.5:
-        return "show_bundle"
-    else:
-        return "give_20_discount"
 
 # -------------------------------
 # FEATURE EXTRACTION (🔥 CORE)
 # -------------------------------
 
-def extract_features(user_id):
-    events = Event.query.filter_by(user_id=user_id).all()
 
-    if not events:
-        return [0, 0, 0, 2]
-
-    clicks = sum(1 for e in events if e.event_type == "click")
-    time_spent = sum(e.value for e in events if e.event_type == "time_spent")
-    cart = sum(1 for e in events if e.event_type == "add_to_cart")
-
-    return [clicks, time_spent, cart, 2]
  # last_login dummy
 
 

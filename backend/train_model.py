@@ -1,84 +1,46 @@
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, classification_report
+from sklearn.preprocessing import StandardScaler
 import joblib
 import os
 
 # -------------------------------
-# 1. Load Dataset
+# LOAD DATA
 # -------------------------------
 DATA_PATH = os.path.join("data", "user_data.csv")
 
 if not os.path.exists(DATA_PATH):
-    raise FileNotFoundError("❌ Dataset not found. Check data/user_data.csv")
+    raise FileNotFoundError("Dataset not found")
 
 data = pd.read_csv(DATA_PATH)
 
-print("✅ Dataset Loaded Successfully")
-print(data.head())
-
 # -------------------------------
-# 2. Prepare Features & Target
+# FEATURES
 # -------------------------------
-X = data.drop("purchase", axis=1)
+X = data[["clicks", "time_spent", "cart_added", "last_login"]]
 y = data["purchase"]
 
 # -------------------------------
-# 3. Train-Test Split
+# SCALING
 # -------------------------------
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42
-)
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
 
 # -------------------------------
-# 4. Train Random Forest Model
+# MODEL
 # -------------------------------
 model = RandomForestClassifier(
-    n_estimators=100,
-    max_depth=5,
+    n_estimators=200,
+    max_depth=None,
     random_state=42
 )
 
-model.fit(X_train, y_train)
-
-print("✅ Model Training Completed")
+model.fit(X_scaled, y)
 
 # -------------------------------
-# 5. Evaluate Model
+# SAVE
 # -------------------------------
-y_pred = model.predict(X_test)
+joblib.dump(model, "model.pkl")
+joblib.dump(scaler, "scaler.pkl")
 
-accuracy = accuracy_score(y_test, y_pred)
-
-print(f"\n📊 Model Accuracy: {accuracy:.2f}")
-print("\n📄 Classification Report:")
-print(classification_report(y_test, y_pred))
-
-# -------------------------------
-# 6. Save Model
-# -------------------------------
-MODEL_PATH = "model.pkl"
-joblib.dump(model, MODEL_PATH)
-
-print(f"\n💾 Model saved as {MODEL_PATH}")
-
-# -------------------------------
-# 7. Test Sample Prediction
-# -------------------------------
-# Format: [clicks, time_spent, cart_added, last_login]
-sample = pd.DataFrame([[5, 10, 1, 2]],
- columns=["clicks", "time_spent", "cart_added", "last_login"])
-
-prediction = model.predict(sample)[0]
-probability = model.predict_proba(sample)[0][1]
-
-print("\n🧪 Sample Prediction Test:")
-print(f"Input: {sample}")
-
-if prediction == 1:
-    print("🟢 Prediction: User WILL BUY")
-else:
-    print("🔴 Prediction: User will NOT BUY")
-
-print(f"Confidence Score: {probability:.2f}")
+print("✅ Model + Scaler saved")
